@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Data cache (large files)
+data_cache/
+
+# Model checkpoints (large files, users can train their own)
+*.pth
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude/AI tools
+.claude/
+
+# Chinese reports (keep English only)
+*_研究報告*
+
+# Internal notes/docs
+HIGH_RES_DATASETS.md
+IMPROVEMENTS.md
+OUTPUT_STRUCTURE.md
+TRAINING_ANALYSIS.md
+VERSION_COMPARISON.md
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
+venv/
+env/

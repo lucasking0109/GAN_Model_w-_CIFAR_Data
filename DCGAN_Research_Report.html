@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCGAN Image Generation Research Report</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        .nav {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav ul {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            list-style: none;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .nav li a {
+            display: block;
+            padding: 18px 25px;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav li a:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 50px 20px;
+        }
+
+        /* Section */
+        .section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 50px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .section h2 {
+            color: var(--primary);
+            font-size: 2rem;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--primary);
+            display: inline-block;
+        }
+
+        .section h3 {
+            color: var(--text);
+            font-size: 1.4rem;
+            margin: 35px 0 20px;
+        }
+
+        .section p {
+            margin-bottom: 18px;
+            font-size: 1.1rem;
+            color: #334155;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 5px solid var(--primary);
+            padding: 25px 30px;
+            border-radius: 0 12px 12px 0;
+            margin: 25px 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 35px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 30px 15px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-item .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .stat-item .label {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        /* Process Flow */
+        .process-flow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .process-step {
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+            padding: 25px 15px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            position: relative;
+        }
+
+        .process-step.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .process-step .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .process-step h4 {
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .process-arrow {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+            margin: 40px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--danger), var(--success), var(--success));
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -33px;
+            top: 30px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--success);
+            border: 4px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .timeline-item.danger::before { background: var(--danger); }
+        .timeline-item.warning::before { background: var(--warning); }
+
+        .timeline-item h4 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .timeline-item p {
+            color: var(--text-light);
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge.success { background: #dcfce7; color: #166534; }
+        .badge.danger { background: #fee2e2; color: #991b1b; }
+        .badge.primary { background: #dbeafe; color: #1e40af; }
+
+        /* Image Comparison */
+        .image-section {
+            margin: 40px 0;
+        }
+
+        .image-section h4 {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            color: var(--text);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .comparison-item {
+            text-align: center;
+        }
+
+        .comparison-item img {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s;
+        }
+
+        .comparison-item img:hover {
+            transform: scale(1.02);
+        }
+
+        .comparison-item .label {
+            margin-top: 15px;
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        /* Result Table */
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 1.05rem;
+        }
+
+        .result-table th,
+        .result-table td {
+            padding: 18px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .result-table tr:hover {
+            background: #fafafa;
+        }
+
+        .result-table .improvement {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* Key Points */
+        .key-points {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .key-point {
+            padding: 25px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .key-point h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .key-point p {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        /* Conclusion Cards */
+        .conclusion-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .conclusion-card {
+            padding: 30px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 12px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .conclusion-card h4 {
+            color: #166534;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .conclusion-card p {
+            margin: 0;
+            color: #15803d;
+            font-size: 1rem;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-light);
+            border-top: 1px solid var(--border);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .section { padding: 30px 25px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .comparison-grid { grid-template-columns: 1fr; }
+            .key-points { grid-template-columns: 1fr; }
+            .conclusion-grid { grid-template-columns: 1fr; }
+            .process-flow { flex-direction: column; }
+            .process-arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>GAN Image Generation Research</h1>
+        <p class="subtitle">How to Solve Mode Collapse in Deep Learning</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <ul>
+            <li><a href="#problem">The Problem</a></li>
+            <li><a href="#solution">Solutions</a></li>
+            <li><a href="#results">Results</a></li>
+            <li><a href="#conclusion">Conclusion</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- Overview -->
+        <section class="section">
+            <h2>Overview</h2>
+
+            <p>This project uses <strong>GAN (Generative Adversarial Network)</strong> to generate images. The concept is simple: two AI models compete against each other — one creates "fakes" and the other tries to detect them. Eventually, the faker becomes increasingly skilled.</p>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="number">3</span>
+                    <div class="label">Versions</div>
+                </div>
+                <div class="stat-item">
+                    <span class="number">100</span>
+                    <div class="label">Epochs</div>
+                </div>
+                <div class="stat-item">
+                    <span class="number">29%</span>
+                    <div class="label">Improvement</div>
+                </div>
+                <div class="stat-item">
+                    <span class="number">64px</span>
+                    <div class="label">Resolution</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Problem Section -->
+        <section id="problem" class="section">
+            <h2>The Problem</h2>
+            <h3>What is Mode Collapse?</h3>
+            <p>The most common issue when training GANs is "Mode Collapse":</p>
+
+            <div class="highlight-box">
+                <p>The Generator discovers that producing only one specific type of image can fool the Discriminator. So it takes a "shortcut" and only produces that one type. The result: <strong>all generated images look exactly the same</strong>.</p>
+            </div>
+
+            <h3>What Happened in My Experiment?</h3>
+            <p>In my first experiment, Mode Collapse suddenly occurred at epoch 91:</p>
+
+            <ul style="margin: 20px 0; padding-left: 25px; font-size: 1.1rem; line-height: 2;">
+                <li>All generated truck images became the same color</li>
+                <li>Almost no variation between images</li>
+                <li>Discriminator accuracy spiked to nearly 100%</li>
+            </ul>
+
+            <p><strong>Root Cause:</strong> The Discriminator became too strong, leaving the Generator unable to learn, forcing it to find shortcuts.</p>
+        </section>
+
+        <!-- Solution Section -->
+        <section id="solution" class="section">
+            <h2>Solutions</h2>
+
+            <p>I experimented with 3 versions, progressively solving the problem:</p>
+
+            <div class="timeline">
+                <div class="timeline-item danger">
+                    <h4>V0: Baseline <span class="badge danger">Failed</span></h4>
+                    <p>Training all 10 CIFAR-10 classes → Mode Collapse at epoch 91</p>
+                </div>
+
+                <div class="timeline-item">
+                    <h4>V1: Single-Class Training <span class="badge success">Success</span></h4>
+                    <p>Only training on "truck" class, with Label Smoothing to "weaken" the Discriminator</p>
+                </div>
+
+                <div class="timeline-item">
+                    <h4>V2: Adding Dropout <span class="badge primary">Best</span></h4>
+                    <p>Added Dropout to Discriminator, further preventing it from being too strong → 29% improvement</p>
+                </div>
+            </div>
+
+            <h3>Key Techniques</h3>
+
+            <div class="key-points">
+                <div class="key-point">
+                    <h4>1. Label Smoothing</h4>
+                    <p>Changed "real=1, fake=0" to "real=0.9, fake=0.1" to prevent Discriminator overconfidence</p>
+                </div>
+                <div class="key-point">
+                    <h4>2. Dropout Regularization</h4>
+                    <p>Randomly disable 30% of neurons to prevent Discriminator from overfitting</p>
+                </div>
+                <div class="key-point">
+                    <h4>3. Training Balance Control</h4>
+                    <p>When Discriminator accuracy >80%, reduce its training frequency</p>
+                </div>
+                <div class="key-point">
+                    <h4>4. Single-Class Training</h4>
+                    <p>Start with a single class to reduce learning complexity</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="results" class="section">
+            <h2>Results</h2>
+
+            <h3>Mode Collapse Comparison (V0 vs V1/V2)</h3>
+            <div class="image-section">
+                <h4>V0 Mode Collapse (Epoch 91)</h4>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <img src="outputs/samples/epoch_0065.png" alt="V0 Epoch 65">
+                        <div class="label">V0 Epoch 65 - Still Normal</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="outputs/samples/epoch_0091.png" alt="V0 Epoch 91">
+                        <div class="label">V0 Epoch 91 - Mode Collapse!</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Training Progress Comparison (V1 vs V2)</h3>
+
+            <div class="image-section">
+                <h4>Early Training (Epoch 1)</h4>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck/samples/epoch_0001.png" alt="V1 Epoch 1">
+                        <div class="label">V1 - Baseline</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck_v2_dropout/samples/epoch_0001.png" alt="V2 Epoch 1">
+                        <div class="label">V2 - With Dropout</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="image-section">
+                <h4>Mid Training (Epoch 50)</h4>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck/samples/epoch_0050.png" alt="V1 Epoch 50">
+                        <div class="label">V1 - Baseline</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck_v2_dropout/samples/epoch_0050.png" alt="V2 Epoch 50">
+                        <div class="label">V2 - With Dropout</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="image-section">
+                <h4>Training Complete (Epoch 100) - Final Results</h4>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck/samples/epoch_0100.png" alt="V1 Epoch 100">
+                        <div class="label">V1 - Baseline</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck_v2_dropout/samples/epoch_0100.png" alt="V2 Epoch 100">
+                        <div class="label">V2 - With Dropout (Clearer, More Diverse)</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Training Loss Curves</h3>
+            <div class="image-section">
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck/training_losses.png" alt="V1 Loss">
+                        <div class="label">V1 Training Curve</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="outputs_class_9_truck_v2_dropout/training_losses.png" alt="V2 Loss">
+                        <div class="label">V2 Training Curve</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>How to Read These Charts?</h3>
+            <p>Each chart has two lines: <strong>Blue is the Generator</strong>, <strong>Orange is the Discriminator</strong>.</p>
+
+            <div class="key-points">
+                <div class="key-point">
+                    <h4>Healthy Training</h4>
+                    <p>The two lines should "pull and push" each other, maintaining dynamic equilibrium. If one keeps dropping while the other keeps rising, it indicates imbalance.</p>
+                </div>
+                <div class="key-point">
+                    <h4>Why is V2 Better?</h4>
+                    <p>V2's curves have smaller fluctuations and are more stable, indicating smoother training with better balance between Generator and Discriminator.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Conclusion Section -->
+        <section id="conclusion" class="section">
+            <h2>Conclusion</h2>
+
+            <div class="conclusion-grid">
+                <div class="conclusion-card">
+                    <h4>Balance is Key</h4>
+                    <p>The key to GAN training is keeping the Generator and Discriminator balanced. If either becomes too strong, problems arise.</p>
+                </div>
+                <div class="conclusion-card">
+                    <h4>Start Simple</h4>
+                    <p>Begin with a single class, then tackle more complex tasks after achieving success.</p>
+                </div>
+            </div>
+
+            <div class="highlight-box" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left-color: var(--warning);">
+                <h4 style="color: #92400e; margin-bottom: 10px;">About Image Quality</h4>
+                <p style="color: #78350f;">While the results "look like something," the images are still <strong>very unclear</strong> and hard to recognize. This is not just a training issue — the CIFAR-10 dataset itself has very low resolution (originally only 32×32), so even upscaled to 64×64, the details are inherently limited.</p>
+                <p style="color: #78350f; margin-top: 12px;"><strong>Future Plans:</strong> Experiment with Diffusion Models and higher resolution image datasets to compare the effectiveness of different generative models.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p><strong>GAN Model Research Report by Lucas</strong></p>
+        <p style="margin-top: 10px;">PyTorch | CIFAR-10</p>
+    </footer>
+
+</body>
+</html>
